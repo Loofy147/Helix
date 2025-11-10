@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Helix Dashboard</title>
+    <style>
+        body { font-family: sans-serif; line-height: 1.6; }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        h1, h2, h3 { color: #333; }
+        blockquote {
+            color: #666;
+            margin: 0;
+            padding-left: 1em;
+            border-left: 0.5em solid #eee;
+        }
+        hr {
+            height: 1px;
+            border: 0;
+            background-color: #ddd;
+        }
+    </style>
+    <!-- Using marked.js from a CDN to parse Markdown -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.2.12/marked.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Helix Dashboard</h1>
+        <div id="helix-content">
+            <p>Loading...</p>
+        </div>
+    </div>
+    <script>
+        // Fetch the content of the STATE_OF_THE_HELIX.md file
+        fetch('STATE_OF_THE_HELIX.md')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.text();
+            })
+            .then(markdown => {
+                // Use marked.js to parse the Markdown content
+                document.getElementById('helix-content').innerHTML = marked.parse(markdown);
+            })
+            .catch(error => {
+                console.error('There has been a problem with your fetch operation:', error);
+                document.getElementById('helix-content').innerHTML = `
+                    <p style="color: red;"><strong>Error:</strong> Could not load the state of the Helix. Please check the console for details.</p>
+                `;
+            });
+    </script>
+</body>
+</html>
