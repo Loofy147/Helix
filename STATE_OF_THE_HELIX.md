@@ -62,3 +62,23 @@
 ### Phase 4: Decide
 * **Based on what we just learned, what is our next move?**
   > Persevere, assuming the design is an improvement. The next logical step would be to add more interactive features or visualizations.
+
+---
+
+## Cycle 4: Accelerate the Helix with Tooling
+
+### Phase 1: Observe
+* **What has changed, and what is the most important truth we need to learn right now?**
+  > The process of updating the `STATE_OF_THE_HELIX.md` file is entirely manual. The most important truth to learn is whether we can build simple tooling to accelerate this process, thereby increasing our overall tempo.
+
+### Phase 2: Build
+* **What is the fastest, cheapest experiment we can run to answer our most important question?**
+  > Add a "Start New Cycle" button to the dashboard. When clicked, it will prompt for a cycle title and generate a complete Markdown template for the new cycle, presenting it in a textarea for easy copying.
+
+### Phase 3: Criticize
+* **Did the experiment's result validate or invalidate our hypothesis? What did we learn?**
+  > Does the "New Cycle" generator work reliably? Is the generated template accurate and helpful? Does this feature tangibly reduce the friction of starting a new cycle?
+
+### Phase 4: Decide
+* **Based on what we just learned, what is our next move?**
+  > Persevere. If the tool is successful, the next step would be to add more sophisticated features, such as the ability to save the new cycle directly to the file.

@@ -17,15 +17,12 @@
             margin: 0 auto;
             padding: 20px;
         }
-        /* Style for the main H1, which is parsed from markdown */
         #helix-content > h1 {
             text-align: center;
             color: #2c3e50;
             margin-bottom: 40px;
             font-weight: 300;
         }
-
-        /* Card Styles */
         .card {
             background-color: #ffffff;
             border-radius: 8px;
@@ -35,125 +32,119 @@
             border-left: 5px solid transparent;
             transition: all 0.2s ease-in-out;
         }
-
-        /* Vector Card Style */
-        .vector-card {
-            background-color: #eaf5ff;
-            border-left-color: #3498db;
-        }
-        .vector-card h2 {
-            color: #2980b9;
-        }
-
-        /* Cycle Card Style */
-        .cycle-card {
-           border-left-color: #dddddd;
-        }
-
-        /* Current Cycle Highlight */
+        .vector-card { background-color: #eaf5ff; border-left-color: #3498db; }
+        .vector-card h2 { color: #2980b9; }
+        .cycle-card { border-left-color: #dddddd; }
         .current-cycle {
             border-left-color: #2ecc71;
             box-shadow: 0 8px 20px rgba(46, 204, 113, 0.2);
             transform: translateY(-2px);
         }
-        .current-cycle h2 {
-            color: #27ae60;
-        }
+        .current-cycle h2 { color: #27ae60; }
+        .card h2 { margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; font-size: 1.8em; font-weight: 400; }
+        .card h3 { color: #555; margin-top: 25px; font-size: 1.3em; font-weight: 600; }
+        .card p strong { display: block; margin-top: 1.2em; color: #34495e; font-weight: 600; }
+        .card blockquote { color: #666; margin: 5px 0 0 0; padding: 10px 15px; border-left: none; background: #f9f9f9; border-radius: 4px; font-style: italic; }
+        #helix-content hr { display: none; }
 
-        .card h2 {
-            margin-top: 0;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
-            font-size: 1.8em;
-            font-weight: 400;
+        /* New Cycle Feature Styles */
+        .controls { text-align: center; margin-bottom: 40px; }
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1em;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
         }
-        .card h3 {
-            color: #555;
-            margin-top: 25px;
-            font-size: 1.3em;
-            font-weight: 600;
+        .btn:hover { background-color: #2980b9; }
+        .template-output {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            position: relative;
         }
-        .card p strong {
-            /* This targets the key questions */
-            display: block;
-            margin-top: 1.2em;
-            color: #34495e;
-            font-weight: 600;
-        }
-        .card blockquote {
-            color: #666;
-            margin: 5px 0 0 0;
-            padding: 10px 15px;
-            border-left: none;
-            background: #f9f9f9;
-            border-radius: 4px;
-            font-style: italic;
-        }
-        /* Hide the HR tags from markdown as cards provide separation */
-        #helix-content hr {
-            display: none;
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #7f8c8d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.2.12/marked.min.js"></script>
 </head>
 <body>
     <div class="container">
+        <div class="controls">
+            <button id="newCycleBtn" class="btn">Start New Cycle</button>
+        </div>
+        <div id="templateContainer" style="display: none;">
+            <h3>New Cycle Template</h3>
+            <div id="templateOutput" class="template-output"></div>
+            <button id="copyBtn" class="copy-btn">Copy</button>
+        </div>
         <div id="helix-content">
             <p>Loading State...</p>
         </div>
     </div>
     <script>
-        function createCard(nodes) {
-            const card = document.createElement('div');
-            card.classList.add('card');
+        function generateNewCycleTemplate(title, cycleNumber) {
+            return `
+---
 
-            const h2 = nodes.find(n => n.nodeName === 'H2');
-            if (h2) {
-                 if (h2.textContent.includes('Current Vector')) {
-                    card.classList.add('vector-card');
-                } else if (h2.textContent.includes('Cycle')) {
-                    card.classList.add('cycle-card');
-                }
-            }
+## Cycle ${cycleNumber}: ${title}
 
-            nodes.forEach(node => card.appendChild(node));
-            return card;
+### Phase 1: Observe
+* **What has changed, and what is the most important truth we need to learn right now?**
+  >
+
+### Phase 2: Build
+* **What is the fastest, cheapest experiment we can run to answer our most important question?**
+  >
+
+### Phase 3: Criticize
+* **Did the experiment's result validate or invalidate our hypothesis? What did we learn?**
+  >
+
+### Phase 4: Decide
+* **Based on what we just learned, what is our next move?**
+  >
+`;
         }
 
-        function applyCardLayout() {
-            const content = document.getElementById('helix-content');
-            if (content.children.length <= 1) return;
+        document.getElementById('newCycleBtn').addEventListener('click', () => {
+            const title = prompt("Enter the title for the new cycle:");
+            if (title) {
+                const cycleCards = document.querySelectorAll('.cycle-card');
+                const nextCycleNumber = cycleCards.length + 1;
+                const template = generateNewCycleTemplate(title, nextCycleNumber);
 
-            const newFragment = document.createDocumentFragment();
-            const h1 = content.querySelector('h1');
-            if (h1) newFragment.appendChild(h1);
+                const templateOutput = document.getElementById('templateOutput');
+                templateOutput.textContent = template.trim();
 
-            const nodes = Array.from(content.childNodes);
-            let currentGroup = [];
+                document.getElementById('templateContainer').style.display = 'block';
+            }
+        });
 
-            nodes.forEach(node => {
-                if(node.nodeName === 'H1') return;
-                if (node.nodeName === 'HR') {
-                    if (currentGroup.length > 0) newFragment.appendChild(createCard(currentGroup));
-                    currentGroup = [];
-                } else {
-                    // Only add element nodes to avoid capturing whitespace text nodes
-                    if(node.nodeType === 1) currentGroup.push(node);
-                }
+        document.getElementById('copyBtn').addEventListener('click', () => {
+            const textToCopy = document.getElementById('templateOutput').textContent;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                alert('Template copied to clipboard!');
+            }, (err) => {
+                console.error('Could not copy text: ', err);
             });
-            if (currentGroup.length > 0) newFragment.appendChild(createCard(currentGroup));
-
-            content.innerHTML = '';
-            content.appendChild(newFragment);
-        }
-
-        function highlightCurrentCycle() {
-            const cycleCards = document.querySelectorAll('.cycle-card');
-            if (cycleCards.length > 0) {
-                const lastCycleCard = cycleCards[cycleCards.length - 1];
-                lastCycleCard.classList.add('current-cycle');
-            }
-        }
+        });
 
         fetch('STATE_OF_THE_HELIX.md')
             .then(response => response.ok ? response.text() : Promise.reject(response.status))
@@ -166,6 +157,47 @@
                 console.error('Error fetching Helix state:', error);
                 document.getElementById('helix-content').innerHTML = '<p style="color: red;"><strong>Error:</strong> Could not load the state of the Helix.</p>';
             });
+
+        function createCard(nodes) {
+            const card = document.createElement('div');
+            card.classList.add('card');
+            const h2 = nodes.find(n => n.nodeName === 'H2');
+            if (h2) {
+                 if (h2.textContent.includes('Current Vector')) card.classList.add('vector-card');
+                 else if (h2.textContent.includes('Cycle')) card.classList.add('cycle-card');
+            }
+            nodes.forEach(node => card.appendChild(node));
+            return card;
+        }
+
+        function applyCardLayout() {
+            const content = document.getElementById('helix-content');
+            if (content.children.length <= 1) return;
+            const newFragment = document.createDocumentFragment();
+            const h1 = content.querySelector('h1');
+            if (h1) newFragment.appendChild(h1);
+            const nodes = Array.from(content.childNodes);
+            let currentGroup = [];
+            nodes.forEach(node => {
+                if(node.nodeName === 'H1') return;
+                if (node.nodeName === 'HR') {
+                    if (currentGroup.length > 0) newFragment.appendChild(createCard(currentGroup));
+                    currentGroup = [];
+                } else {
+                    if(node.nodeType === 1) currentGroup.push(node);
+                }
+            });
+            if (currentGroup.length > 0) newFragment.appendChild(createCard(currentGroup));
+            content.innerHTML = '';
+            content.appendChild(newFragment);
+        }
+
+        function highlightCurrentCycle() {
+            const cycleCards = document.querySelectorAll('.cycle-card');
+            if (cycleCards.length > 0) {
+                cycleCards[cycleCards.length - 1].classList.add('current-cycle');
+            }
+        }
     </script>
 </body>
 </html>
