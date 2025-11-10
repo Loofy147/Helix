@@ -5,50 +5,230 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Helix Dashboard</title>
     <style>
-        body { font-family: sans-serif; line-height: 1.6; }
-        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
-        h1, h2, h3 { color: #333; }
-        blockquote {
-            color: #666;
-            margin: 0;
-            padding-left: 1em;
-            border-left: 0.5em solid #eee;
-        }
-        hr {
-            height: 1px;
-            border: 0;
-            background-color: #ddd;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; background-color: #f4f7f9; color: #333; margin: 0; }
+        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+        #helix-content > h1 { text-align: center; color: #2c3e50; margin-bottom: 40px; font-weight: 300; }
+        .card { background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 30px; padding: 25px 30px; border-left: 5px solid transparent; transition: all 0.2s ease-in-out; }
+        .vector-card { background-color: #eaf5ff; border-left-color: #3498db; }
+        .vector-card h2 { color: #2980b9; }
+        .cycle-card { border-left-color: #dddddd; }
+        .current-cycle { border-left-color: #2ecc71; box-shadow: 0 8px 20px rgba(46, 204, 113, 0.2); transform: translateY(-2px); }
+        .current-cycle h2 { color: #27ae60; }
+        .card h2 { margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; font-size: 1.8em; font-weight: 400; }
+        .card h3 { color: #555; margin-top: 25px; font-size: 1.3em; font-weight: 600; }
+        .card p strong { display: block; margin-top: 1.2em; color: #34495e; font-weight: 600; }
+        .card blockquote { color: #666; margin: 5px 0 0 0; padding: 10px 15px; border-left: none; background: #f9f9f9; border-radius: 4px; font-style: italic; position: relative; }
+        #helix-content hr { display: none; }
+        .controls { text-align: center; margin-bottom: 40px; }
+        .btn { background-color: #3498db; color: white; border: none; padding: 12px 25px; font-size: 1em; border-radius: 5px; cursor: pointer; transition: background-color 0.2s; }
+        .btn:hover { background-color: #2980b9; }
+
+        /* Edit in Place Styles */
+        .edit-btn { position: absolute; top: 5px; right: 5px; background: #bdc3c7; color: white; border: none; padding: 3px 8px; font-size: 0.8em; border-radius: 3px; cursor: pointer; opacity: 0; transition: opacity 0.2s; }
+        blockquote:hover .edit-btn { opacity: 1; }
+        .edit-textarea { width: 100%; min-height: 80px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; padding: 10px; margin-top: 5px; }
+        .save-btn { background-color: #2ecc71; margin-top: 10px; }
+        .save-btn:hover { background-color: #27ae60; }
+        .cancel-btn { background-color: #e74c3c; margin-top: 10px; margin-left: 10px; }
+        .cancel-btn:hover { background-color: #c0392b; }
+        .toggle-switch { display: inline-block; margin-left: 20px; vertical-align: middle; }
+        .read-only .edit-btn { display: none; }
     </style>
-    <!-- Using marked.js from a CDN to parse Markdown -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.2.12/marked.min.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>Helix Dashboard</h1>
+        <div class="controls">
+            <button id="newCycleBtn" class="btn">Start New Cycle</button>
+        <div class="toggle-switch">
+            <label for="readOnlyToggle">Read-Only Mode</label>
+            <input type="checkbox" id="readOnlyToggle" checked>
+        </div>
+        </div>
         <div id="helix-content">
-            <p>Loading...</p>
+            <p>Loading State...</p>
         </div>
     </div>
     <script>
-        // Fetch the content of the STATE_OF_THE_HELIX.md file
-        fetch('STATE_OF_THE_HELIX.md')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.text();
-            })
-            .then(markdown => {
-                // Use marked.js to parse the Markdown content
-                document.getElementById('helix-content').innerHTML = marked.parse(markdown);
-            })
-            .catch(error => {
-                console.error('There has been a problem with your fetch operation:', error);
-                document.getElementById('helix-content').innerHTML = `
-                    <p style="color: red;"><strong>Error:</strong> Could not load the state of the Helix. Please check the console for details.</p>
-                `;
+        const API_URL = '/api/helix-state';
+
+        document.getElementById('readOnlyToggle').addEventListener('change', (event) => {
+            document.querySelector('.container').classList.toggle('read-only', event.target.checked);
+        });
+
+        document.getElementById('newCycleBtn').addEventListener('click', () => {
+            const title = prompt("Enter the title for the new cycle:");
+            if (title) {
+                fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: title })
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('Failed to add new cycle');
+                    loadHelixState();
+                })
+                .catch(error => console.error('Error adding new cycle:', error));
+            }
+        });
+
+        function loadHelixState() {
+            fetch(API_URL)
+                .then(response => response.ok ? response.json() : Promise.reject(response.status))
+                .then(state => {
+                    const markdown = generateMarkdown(state);
+                    document.getElementById('helix-content').innerHTML = marked.parse(markdown);
+                    applyCardLayout();
+                    highlightCurrentCycle();
+                    addEditButtons();
+                })
+                .catch(error => console.error('Error fetching Helix state:', error));
+        }
+
+        function generateMarkdown(state) {
+            let markdown = `# State of the Helix\n\n## Current Vector\n${state.vector}\n`;
+            state.cycles.forEach(cycle => {
+                markdown += `
+---
+
+## Cycle ${cycle.number}: ${cycle.title}
+
+### Phase 1: Observe
+* **${cycle.phases.observe.question}**
+  > ${cycle.phases.observe.answer}
+
+### Phase 2: Build
+* **${cycle.phases.build.question}**
+  > ${cycle.phases.build.answer}
+
+### Phase 3: Criticize
+* **${cycle.phases.criticize.question}**
+  > ${cycle.phases.criticize.answer}
+
+### Phase 4: Decide
+* **${cycle.phases.decide.question}**
+  > ${cycle.phases.decide.answer}
+`;
             });
+            return markdown;
+        }
+
+        function addEditButtons() {
+            const blockquotes = document.querySelectorAll('blockquote');
+            blockquotes.forEach(blockquote => {
+                // Don't add an edit button if one already exists
+                if (blockquote.querySelector('.edit-btn')) return;
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'edit-btn';
+                editBtn.textContent = 'Edit';
+                blockquote.appendChild(editBtn);
+
+                editBtn.addEventListener('click', () => {
+                    const originalContent = blockquote.innerHTML; // Save original state
+                    const currentText = blockquote.childNodes[0].textContent.trim();
+                    const cycleCard = blockquote.closest('.cycle-card');
+                    const cycleNumber = parseInt(cycleCard.dataset.cycleNumber);
+                    const phase = blockquote.dataset.phase;
+
+                    blockquote.innerHTML = `
+                        <textarea class="edit-textarea">${currentText}</textarea>
+                        <button class="btn save-btn">Save</button>
+                        <button class="btn cancel-btn">Cancel</button>
+                    `;
+
+                    const saveBtn = blockquote.querySelector('.save-btn');
+                    saveBtn.addEventListener('click', () => {
+                        const newText = blockquote.querySelector('.edit-textarea').value;
+                        fetch(API_URL, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ cycleNumber, phase, answer: newText })
+                        })
+                        .then(response => {
+                            if (!response.ok) throw new Error('Failed to save content');
+                            loadHelixState(); // Reload to show the new state
+                        })
+                        .catch(error => {
+                            console.error('Error saving content:', error);
+                            blockquote.innerHTML = originalContent; // Restore on error
+                        });
+                    });
+
+                    const cancelBtn = blockquote.querySelector('.cancel-btn');
+                    cancelBtn.addEventListener('click', () => {
+                        blockquote.innerHTML = originalContent;
+                        addEditButtons(); // Re-add the edit button
+                    });
+                });
+            });
+        }
+
+        function applyCardLayout() {
+            const content = document.getElementById('helix-content');
+            if (content.children.length <= 1) return;
+            const newFragment = document.createDocumentFragment();
+            const h1 = content.querySelector('h1');
+            if (h1) newFragment.appendChild(h1);
+            const nodes = Array.from(content.childNodes);
+            let currentGroup = [];
+            let cycleCounter = 0;
+            nodes.forEach(node => {
+                if (node.nodeName === 'H1') return;
+                if (node.nodeName === 'HR') {
+                    if (currentGroup.length > 0) {
+                        const card = createCard(currentGroup);
+                        if (card.classList.contains('cycle-card')) {
+                            cycleCounter++;
+                            card.dataset.cycleNumber = cycleCounter;
+                            const blockquotes = card.querySelectorAll('blockquote');
+                            const phases = ['observe', 'build', 'criticize', 'decide'];
+                            blockquotes.forEach((bq, i) => bq.dataset.phase = phases[i]);
+                        }
+                        newFragment.appendChild(card);
+                    }
+                    currentGroup = [];
+                } else {
+                    if (node.nodeType === 1) currentGroup.push(node);
+                }
+            });
+            if (currentGroup.length > 0) { // Add the last card
+                const card = createCard(currentGroup);
+                if (card.classList.contains('cycle-card')) {
+                    cycleCounter++;
+                    card.dataset.cycleNumber = cycleCounter;
+                    const blockquotes = card.querySelectorAll('blockquote');
+                    const phases = ['observe', 'build', 'criticize', 'decide'];
+                    blockquotes.forEach((bq, i) => bq.dataset.phase = phases[i]);
+                }
+                newFragment.appendChild(card);
+            }
+            content.innerHTML = '';
+            content.appendChild(newFragment);
+        }
+
+        function createCard(nodes) {
+            const card = document.createElement('div');
+            card.classList.add('card');
+            const h2 = nodes.find(n => n.nodeName === 'H2');
+            if (h2) {
+                 if (h2.textContent.includes('Current Vector')) card.classList.add('vector-card');
+                 else if (h2.textContent.includes('Cycle')) card.classList.add('cycle-card');
+            }
+            nodes.forEach(node => card.appendChild(node));
+            return card;
+        }
+
+        function highlightCurrentCycle() {
+            const cycleCards = document.querySelectorAll('.cycle-card');
+            if (cycleCards.length > 0) {
+                cycleCards[cycleCards.length - 1].classList.add('current-cycle');
+            }
+        }
+
+        // Set initial state
+        document.getElementById('readOnlyToggle').dispatchEvent(new Event('change'));
+        loadHelixState();
     </script>
 </body>
 </html>
