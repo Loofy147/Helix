@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Helix Dashboard</title>
+    <style>
+        body { font-family: sans-serif; line-height: 1.6; }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        h1, h2, h3 { color: #333; }
+        .vector { background-color: #f0f8ff; padding: 15px; border-radius: 5px; }
+        .cycle { border-left: 3px solid #ccc; padding-left: 15px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Helix Dashboard</h1>
+        <div id="helix-content"></div>
+    </div>
+    <script>
+        // In a future cycle, we will fetch and parse the STATE_OF_THE_HELIX.md file here.
+        // For now, this is a static representation.
+        document.getElementById('helix-content').innerHTML = `
+            <div class="vector">
+                <h2>Current Vector</h2>
+                <p><strong>The Strategic Helix methodology, when applied to itself, can create a self-improving system for venture development.</strong></p>
+            </div>
+            <div class="cycle">
+                <h2>Cycle 1: Formalize the Foundation</h2>
+                <h3>Phase 1: Observe</h3>
+                <p><strong>What has changed, and what is the most important truth we need to learn right now?</strong></p>
+                <p>The project is a blank slate. The most important truth to learn is whether we can create a tangible, observable artifact of the Helix methodology itself.</p>
+                <h3>Phase 2: Build</h3>
+                <p><strong>What is the fastest, cheapest experiment we can run to answer our most important question?</strong></p>
+                <p>Create the initial project structure, including the <code>STATE_OF_THE_HELIX.md</code> document and a simple dashboard to visualize it.</p>
+                <h3>Phase 3: Criticize</h3>
+                <p><strong>Did the experiment's result validate or invalidate our hypothesis? What did we learn?</strong></p>
+                <p>Does the initial setup clearly reflect the principles of the Strategic Helix? Is it a solid foundation for future cycles?</p>
+                <h3>Phase 4: Decide</h3>
+                <p><strong>Based on what we just learned, what is our next move?</strong></p>
+                <p>Persevere. The next step is to build upon this foundation.</p>
+            </div>
+        `;
+    </script>
+</body>
+</html>
