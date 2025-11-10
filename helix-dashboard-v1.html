@@ -46,8 +46,6 @@
         .card p strong { display: block; margin-top: 1.2em; color: #34495e; font-weight: 600; }
         .card blockquote { color: #666; margin: 5px 0 0 0; padding: 10px 15px; border-left: none; background: #f9f9f9; border-radius: 4px; font-style: italic; }
         #helix-content hr { display: none; }
-
-        /* New Cycle Feature Styles */
         .controls { text-align: center; margin-bottom: 40px; }
         .btn {
             background-color: #3498db;
@@ -60,27 +58,6 @@
             transition: background-color 0.2s;
         }
         .btn:hover { background-color: #2980b9; }
-        .template-output {
-            background-color: #2c3e50;
-            color: #ecf0f1;
-            padding: 20px;
-            border-radius: 5px;
-            margin-top: 20px;
-            white-space: pre-wrap;
-            font-family: monospace;
-            position: relative;
-        }
-        .copy-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: #7f8c8d;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 3px;
-            cursor: pointer;
-        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.2.12/marked.min.js"></script>
 </head>
@@ -89,16 +66,13 @@
         <div class="controls">
             <button id="newCycleBtn" class="btn">Start New Cycle</button>
         </div>
-        <div id="templateContainer" style="display: none;">
-            <h3>New Cycle Template</h3>
-            <div id="templateOutput" class="template-output"></div>
-            <button id="copyBtn" class="copy-btn">Copy</button>
-        </div>
         <div id="helix-content">
             <p>Loading State...</p>
         </div>
     </div>
     <script>
+        const API_URL = 'http://localhost:3000/api/helix-state';
+
         function generateNewCycleTemplate(title, cycleNumber) {
             return `
 ---
@@ -130,33 +104,35 @@
                 const nextCycleNumber = cycleCards.length + 1;
                 const template = generateNewCycleTemplate(title, nextCycleNumber);
 
-                const templateOutput = document.getElementById('templateOutput');
-                templateOutput.textContent = template.trim();
-
-                document.getElementById('templateContainer').style.display = 'block';
+                fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ newCycle: template })
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('Failed to add new cycle');
+                    loadHelixState(); // Refresh the content
+                })
+                .catch(error => {
+                    console.error('Error adding new cycle:', error);
+                    alert('Could not add the new cycle. See console for details.');
+                });
             }
         });
 
-        document.getElementById('copyBtn').addEventListener('click', () => {
-            const textToCopy = document.getElementById('templateOutput').textContent;
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                alert('Template copied to clipboard!');
-            }, (err) => {
-                console.error('Could not copy text: ', err);
-            });
-        });
-
-        fetch('STATE_OF_THE_HELIX.md')
-            .then(response => response.ok ? response.text() : Promise.reject(response.status))
-            .then(markdown => {
-                document.getElementById('helix-content').innerHTML = marked.parse(markdown);
-                applyCardLayout();
-                highlightCurrentCycle();
-            })
-            .catch(error => {
-                console.error('Error fetching Helix state:', error);
-                document.getElementById('helix-content').innerHTML = '<p style="color: red;"><strong>Error:</strong> Could not load the state of the Helix.</p>';
-            });
+        function loadHelixState() {
+            fetch(API_URL)
+                .then(response => response.ok ? response.text() : Promise.reject(response.status))
+                .then(markdown => {
+                    document.getElementById('helix-content').innerHTML = marked.parse(markdown);
+                    applyCardLayout();
+                    highlightCurrentCycle();
+                })
+                .catch(error => {
+                    console.error('Error fetching Helix state:', error);
+                    document.getElementById('helix-content').innerHTML = '<p style="color: red;"><strong>Error:</strong> Could not load the state of the Helix.</p>';
+                });
+        }
 
         function createCard(nodes) {
             const card = document.createElement('div');
@@ -198,6 +174,9 @@
                 cycleCards[cycleCards.length - 1].classList.add('current-cycle');
             }
         }
+
+        // Initial load
+        loadHelixState();
     </script>
 </body>
 </html>
