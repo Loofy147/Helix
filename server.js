@@ -1,7 +1,6 @@
 const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
-const cors = require('cors');
 
 const app = express();
 const port = 3000;
@@ -9,7 +8,8 @@ const port = 3000;
 const stateJsonFile = path.join(__dirname, 'state.json');
 const helixStateFile = path.join(__dirname, 'STATE_OF_THE_HELIX.md');
 
-app.use(cors());
+// Serve static files from the project root
+app.use(express.static(__dirname));
 app.use(express.json());
 
 function generateMarkdown(state) {

@@ -132,6 +132,28 @@
           "answer": "Persevere. If the core mechanics of structured, editable state are successful, the next step will be to build more advanced UI controls and visualizations on top of this powerful new foundation."
         }
       }
+    },
+    {
+      "title": "Cycle 7: Containerization and Operational Simplification",
+      "number": 7,
+      "phases": {
+        "observe": {
+          "question": "What has changed, and what is the most important truth we need to learn right now?",
+          "answer": ""
+        },
+        "build": {
+          "question": "What is the fastest, cheapest experiment we can run to answer our most important question?",
+          "answer": ""
+        },
+        "criticize": {
+          "question": "Did the experiment's result validate or invalidate our hypothesis? What did we learn?",
+          "answer": ""
+        },
+        "decide": {
+          "question": "Based on what we just learned, what is our next move?",
+          "answer": ""
+        }
+      }
     }
   ]
 }
