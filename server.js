@@ -8,6 +8,12 @@ const port = 3000;
 const stateJsonFile = path.join(__dirname, 'state.json');
 const helixStateFile = path.join(__dirname, 'STATE_OF_THE_HELIX.md');
 
+// Simple request logger
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    next();
+});
+
 // Serve static files from the project root
 app.use(express.static(__dirname));
 app.use(express.json());
@@ -53,11 +59,13 @@ async function writeState(state) {
 
 app.get('/api/helix-state', async (req, res) => {
     try {
+        console.log('Reading and generating Helix state markdown...');
         const state = await readState();
         const markdown = generateMarkdown(state);
         res.send(markdown);
+        console.log('Successfully served Helix state.');
     } catch (err) {
-        console.error(err);
+        console.error('Error reading Helix state:', err);
         res.status(500).send('Error reading the Helix state.');
     }
 });
@@ -65,9 +73,11 @@ app.get('/api/helix-state', async (req, res) => {
 app.post('/api/helix-state', async (req, res) => {
     const { title } = req.body;
     if (!title) {
+        console.warn('Attempted to add a cycle with no title.');
         return res.status(400).send('No title provided.');
     }
     try {
+        console.log(`Adding new cycle with title: "${title}"`);
         const state = await readState();
         const newCycle = {
             title: title,
@@ -81,9 +91,10 @@ app.post('/api/helix-state', async (req, res) => {
         };
         state.cycles.push(newCycle);
         await writeState(state);
+        console.log(`Successfully added cycle ${newCycle.number}.`);
         res.status(200).send('New cycle added successfully.');
     } catch (err) {
-        console.error(err);
+        console.error('Error adding new cycle:', err);
         res.status(500).send('Error adding new cycle.');
     }
 });
@@ -91,22 +102,27 @@ app.post('/api/helix-state', async (req, res) => {
 app.put('/api/helix-state', async (req, res) => {
     const { cycleNumber, phase, answer } = req.body;
     if (!cycleNumber || !phase || answer === undefined) {
+        console.warn('Update request missing required fields:', { cycleNumber, phase, answer: answer !== undefined });
         return res.status(400).send('Missing required fields.');
     }
     try {
+        console.log(`Updating Cycle ${cycleNumber}, Phase "${phase}"...`);
         const state = await readState();
         const cycle = state.cycles.find(c => c.number === cycleNumber);
         if (!cycle) {
+            console.warn(`Attempted to update a non-existent cycle: ${cycleNumber}`);
             return res.status(404).send('Cycle not found.');
         }
         if (!cycle.phases[phase]) {
+            console.warn(`Attempted to update a non-existent phase: "${phase}" in cycle ${cycleNumber}`);
             return res.status(404).send('Phase not found.');
         }
         cycle.phases[phase].answer = answer;
         await writeState(state);
+        console.log(`Successfully updated Cycle ${cycleNumber}.`);
         res.status(200).send('State updated successfully.');
     } catch (err) {
-        console.error(err);
+        console.error(`Error updating state for Cycle ${cycleNumber}:`, err);
         res.status(500).send('Error updating state.');
     }
 });

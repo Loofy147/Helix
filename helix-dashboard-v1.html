@@ -29,6 +29,10 @@
         .edit-textarea { width: 100%; min-height: 80px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; padding: 10px; margin-top: 5px; }
         .save-btn { background-color: #2ecc71; margin-top: 10px; }
         .save-btn:hover { background-color: #27ae60; }
+        .cancel-btn { background-color: #e74c3c; margin-top: 10px; margin-left: 10px; }
+        .cancel-btn:hover { background-color: #c0392b; }
+        .toggle-switch { display: inline-block; margin-left: 20px; vertical-align: middle; }
+        .read-only .edit-btn { display: none; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.2.12/marked.min.js"></script>
 </head>
@@ -36,6 +40,10 @@
     <div class="container">
         <div class="controls">
             <button id="newCycleBtn" class="btn">Start New Cycle</button>
+        <div class="toggle-switch">
+            <label for="readOnlyToggle">Read-Only Mode</label>
+            <input type="checkbox" id="readOnlyToggle" checked>
+        </div>
         </div>
         <div id="helix-content">
             <p>Loading State...</p>
@@ -43,6 +51,10 @@
     </div>
     <script>
         const API_URL = '/api/helix-state';
+
+        document.getElementById('readOnlyToggle').addEventListener('change', (event) => {
+            document.querySelector('.container').classList.toggle('read-only', event.target.checked);
+        });
 
         document.getElementById('newCycleBtn').addEventListener('click', () => {
             const title = prompt("Enter the title for the new cycle:");
@@ -74,13 +86,17 @@
 
         function addEditButtons() {
             const blockquotes = document.querySelectorAll('blockquote');
-            blockquotes.forEach((blockquote, index) => {
+            blockquotes.forEach(blockquote => {
+                // Don't add an edit button if one already exists
+                if (blockquote.querySelector('.edit-btn')) return;
+
                 const editBtn = document.createElement('button');
                 editBtn.className = 'edit-btn';
                 editBtn.textContent = 'Edit';
                 blockquote.appendChild(editBtn);
 
                 editBtn.addEventListener('click', () => {
+                    const originalContent = blockquote.innerHTML; // Save original state
                     const currentText = blockquote.childNodes[0].textContent.trim();
                     const cycleCard = blockquote.closest('.cycle-card');
                     const cycleNumber = parseInt(cycleCard.dataset.cycleNumber);
@@ -89,7 +105,9 @@
                     blockquote.innerHTML = `
                         <textarea class="edit-textarea">${currentText}</textarea>
                         <button class="btn save-btn">Save</button>
+                        <button class="btn cancel-btn">Cancel</button>
                     `;
+
                     const saveBtn = blockquote.querySelector('.save-btn');
                     saveBtn.addEventListener('click', () => {
                         const newText = blockquote.querySelector('.edit-textarea').value;
@@ -100,9 +118,18 @@
                         })
                         .then(response => {
                             if (!response.ok) throw new Error('Failed to save content');
-                            loadHelixState();
+                            loadHelixState(); // Reload to show the new state
                         })
-                        .catch(error => console.error('Error saving content:', error));
+                        .catch(error => {
+                            console.error('Error saving content:', error);
+                            blockquote.innerHTML = originalContent; // Restore on error
+                        });
+                    });
+
+                    const cancelBtn = blockquote.querySelector('.cancel-btn');
+                    cancelBtn.addEventListener('click', () => {
+                        blockquote.innerHTML = originalContent;
+                        addEditButtons(); // Re-add the edit button
                     });
                 });
             });
@@ -170,6 +197,8 @@
             }
         }
 
+        // Set initial state
+        document.getElementById('readOnlyToggle').dispatchEvent(new Event('change'));
         loadHelixState();
     </script>
 </body>
