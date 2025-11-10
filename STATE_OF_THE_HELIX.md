@@ -42,3 +42,23 @@
 ### Phase 4: Decide
 * **Based on what we just learned, what is our next move?**
   > Persevere. Continue building on this dynamic foundation for future features.
+
+---
+
+## Cycle 3: Visual Clarity and Focus
+
+### Phase 1: Observe
+* **What has changed, and what is the most important truth we need to learn right now?**
+  > The dashboard is functional but lacks visual hierarchy. The most important truth to learn is whether a clearer, more intentional design can improve our ability to quickly assess the project's state and focus on the current cycle.
+
+### Phase 2: Build
+* **What is the fastest, cheapest experiment we can run to answer our most important question?**
+  > Enhance the dashboard's CSS to create a card-based design that visually separates each cycle. Add JavaScript to automatically highlight the most recent cycle on the page.
+
+### Phase 3: Criticize
+* **Did the experiment's result validate or invalidate our hypothesis? What did we learn?**
+  > Does the new design make the dashboard significantly easier to read and interpret? Does the "current cycle" highlight work reliably and draw appropriate attention?
+
+### Phase 4: Decide
+* **Based on what we just learned, what is our next move?**
+  > Persevere, assuming the design is an improvement. The next logical step would be to add more interactive features or visualizations.

@@ -5,49 +5,166 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Helix Dashboard</title>
     <style>
-        body { font-family: sans-serif; line-height: 1.6; }
-        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
-        h1, h2, h3 { color: #333; }
-        blockquote {
-            color: #666;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            background-color: #f4f7f9;
+            color: #333;
             margin: 0;
-            padding-left: 1em;
-            border-left: 0.5em solid #eee;
         }
-        hr {
-            height: 1px;
-            border: 0;
-            background-color: #ddd;
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        /* Style for the main H1, which is parsed from markdown */
+        #helix-content > h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 40px;
+            font-weight: 300;
+        }
+
+        /* Card Styles */
+        .card {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+            padding: 25px 30px;
+            border-left: 5px solid transparent;
+            transition: all 0.2s ease-in-out;
+        }
+
+        /* Vector Card Style */
+        .vector-card {
+            background-color: #eaf5ff;
+            border-left-color: #3498db;
+        }
+        .vector-card h2 {
+            color: #2980b9;
+        }
+
+        /* Cycle Card Style */
+        .cycle-card {
+           border-left-color: #dddddd;
+        }
+
+        /* Current Cycle Highlight */
+        .current-cycle {
+            border-left-color: #2ecc71;
+            box-shadow: 0 8px 20px rgba(46, 204, 113, 0.2);
+            transform: translateY(-2px);
+        }
+        .current-cycle h2 {
+            color: #27ae60;
+        }
+
+        .card h2 {
+            margin-top: 0;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            font-size: 1.8em;
+            font-weight: 400;
+        }
+        .card h3 {
+            color: #555;
+            margin-top: 25px;
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+        .card p strong {
+            /* This targets the key questions */
+            display: block;
+            margin-top: 1.2em;
+            color: #34495e;
+            font-weight: 600;
+        }
+        .card blockquote {
+            color: #666;
+            margin: 5px 0 0 0;
+            padding: 10px 15px;
+            border-left: none;
+            background: #f9f9f9;
+            border-radius: 4px;
+            font-style: italic;
+        }
+        /* Hide the HR tags from markdown as cards provide separation */
+        #helix-content hr {
+            display: none;
         }
     </style>
-    <!-- Using marked.js from a CDN to parse Markdown -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.2.12/marked.min.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>Helix Dashboard</h1>
         <div id="helix-content">
-            <p>Loading...</p>
+            <p>Loading State...</p>
         </div>
     </div>
     <script>
-        // Fetch the content of the STATE_OF_THE_HELIX.md file
-        fetch('STATE_OF_THE_HELIX.md')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
+        function createCard(nodes) {
+            const card = document.createElement('div');
+            card.classList.add('card');
+
+            const h2 = nodes.find(n => n.nodeName === 'H2');
+            if (h2) {
+                 if (h2.textContent.includes('Current Vector')) {
+                    card.classList.add('vector-card');
+                } else if (h2.textContent.includes('Cycle')) {
+                    card.classList.add('cycle-card');
                 }
-                return response.text();
-            })
+            }
+
+            nodes.forEach(node => card.appendChild(node));
+            return card;
+        }
+
+        function applyCardLayout() {
+            const content = document.getElementById('helix-content');
+            if (content.children.length <= 1) return;
+
+            const newFragment = document.createDocumentFragment();
+            const h1 = content.querySelector('h1');
+            if (h1) newFragment.appendChild(h1);
+
+            const nodes = Array.from(content.childNodes);
+            let currentGroup = [];
+
+            nodes.forEach(node => {
+                if(node.nodeName === 'H1') return;
+                if (node.nodeName === 'HR') {
+                    if (currentGroup.length > 0) newFragment.appendChild(createCard(currentGroup));
+                    currentGroup = [];
+                } else {
+                    // Only add element nodes to avoid capturing whitespace text nodes
+                    if(node.nodeType === 1) currentGroup.push(node);
+                }
+            });
+            if (currentGroup.length > 0) newFragment.appendChild(createCard(currentGroup));
+
+            content.innerHTML = '';
+            content.appendChild(newFragment);
+        }
+
+        function highlightCurrentCycle() {
+            const cycleCards = document.querySelectorAll('.cycle-card');
+            if (cycleCards.length > 0) {
+                const lastCycleCard = cycleCards[cycleCards.length - 1];
+                lastCycleCard.classList.add('current-cycle');
+            }
+        }
+
+        fetch('STATE_OF_THE_HELIX.md')
+            .then(response => response.ok ? response.text() : Promise.reject(response.status))
             .then(markdown => {
-                // Use marked.js to parse the Markdown content
                 document.getElementById('helix-content').innerHTML = marked.parse(markdown);
+                applyCardLayout();
+                highlightCurrentCycle();
             })
             .catch(error => {
-                console.error('There has been a problem with your fetch operation:', error);
-                document.getElementById('helix-content').innerHTML = `
-                    <p style="color: red;"><strong>Error:</strong> Could not load the state of the Helix. Please check the console for details.</p>
-                `;
+                console.error('Error fetching Helix state:', error);
+                document.getElementById('helix-content').innerHTML = '<p style="color: red;"><strong>Error:</strong> Could not load the state of the Helix.</p>';
             });
     </script>
 </body>
