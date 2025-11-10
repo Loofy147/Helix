@@ -5,59 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Helix Dashboard</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6;
-            background-color: #f4f7f9;
-            color: #333;
-            margin: 0;
-        }
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        #helix-content > h1 {
-            text-align: center;
-            color: #2c3e50;
-            margin-bottom: 40px;
-            font-weight: 300;
-        }
-        .card {
-            background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            margin-bottom: 30px;
-            padding: 25px 30px;
-            border-left: 5px solid transparent;
-            transition: all 0.2s ease-in-out;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; background-color: #f4f7f9; color: #333; margin: 0; }
+        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+        #helix-content > h1 { text-align: center; color: #2c3e50; margin-bottom: 40px; font-weight: 300; }
+        .card { background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 30px; padding: 25px 30px; border-left: 5px solid transparent; transition: all 0.2s ease-in-out; }
         .vector-card { background-color: #eaf5ff; border-left-color: #3498db; }
         .vector-card h2 { color: #2980b9; }
         .cycle-card { border-left-color: #dddddd; }
-        .current-cycle {
-            border-left-color: #2ecc71;
-            box-shadow: 0 8px 20px rgba(46, 204, 113, 0.2);
-            transform: translateY(-2px);
-        }
+        .current-cycle { border-left-color: #2ecc71; box-shadow: 0 8px 20px rgba(46, 204, 113, 0.2); transform: translateY(-2px); }
         .current-cycle h2 { color: #27ae60; }
         .card h2 { margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; font-size: 1.8em; font-weight: 400; }
         .card h3 { color: #555; margin-top: 25px; font-size: 1.3em; font-weight: 600; }
         .card p strong { display: block; margin-top: 1.2em; color: #34495e; font-weight: 600; }
-        .card blockquote { color: #666; margin: 5px 0 0 0; padding: 10px 15px; border-left: none; background: #f9f9f9; border-radius: 4px; font-style: italic; }
+        .card blockquote { color: #666; margin: 5px 0 0 0; padding: 10px 15px; border-left: none; background: #f9f9f9; border-radius: 4px; font-style: italic; position: relative; }
         #helix-content hr { display: none; }
         .controls { text-align: center; margin-bottom: 40px; }
-        .btn {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            font-size: 1em;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
+        .btn { background-color: #3498db; color: white; border: none; padding: 12px 25px; font-size: 1em; border-radius: 5px; cursor: pointer; transition: background-color 0.2s; }
         .btn:hover { background-color: #2980b9; }
+
+        /* Edit in Place Styles */
+        .edit-btn { position: absolute; top: 5px; right: 5px; background: #bdc3c7; color: white; border: none; padding: 3px 8px; font-size: 0.8em; border-radius: 3px; cursor: pointer; opacity: 0; transition: opacity 0.2s; }
+        blockquote:hover .edit-btn { opacity: 1; }
+        .edit-textarea { width: 100%; min-height: 80px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; padding: 10px; margin-top: 5px; }
+        .save-btn { background-color: #2ecc71; margin-top: 10px; }
+        .save-btn:hover { background-color: #27ae60; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.2.12/marked.min.js"></script>
 </head>
@@ -73,50 +44,19 @@
     <script>
         const API_URL = 'http://localhost:3000/api/helix-state';
 
-        function generateNewCycleTemplate(title, cycleNumber) {
-            return `
----
-
-## Cycle ${cycleNumber}: ${title}
-
-### Phase 1: Observe
-* **What has changed, and what is the most important truth we need to learn right now?**
-  >
-
-### Phase 2: Build
-* **What is the fastest, cheapest experiment we can run to answer our most important question?**
-  >
-
-### Phase 3: Criticize
-* **Did the experiment's result validate or invalidate our hypothesis? What did we learn?**
-  >
-
-### Phase 4: Decide
-* **Based on what we just learned, what is our next move?**
-  >
-`;
-        }
-
         document.getElementById('newCycleBtn').addEventListener('click', () => {
             const title = prompt("Enter the title for the new cycle:");
             if (title) {
-                const cycleCards = document.querySelectorAll('.cycle-card');
-                const nextCycleNumber = cycleCards.length + 1;
-                const template = generateNewCycleTemplate(title, nextCycleNumber);
-
                 fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ newCycle: template })
+                    body: JSON.stringify({ title: title })
                 })
                 .then(response => {
                     if (!response.ok) throw new Error('Failed to add new cycle');
-                    loadHelixState(); // Refresh the content
+                    loadHelixState();
                 })
-                .catch(error => {
-                    console.error('Error adding new cycle:', error);
-                    alert('Could not add the new cycle. See console for details.');
-                });
+                .catch(error => console.error('Error adding new cycle:', error));
             }
         });
 
@@ -127,11 +67,88 @@
                     document.getElementById('helix-content').innerHTML = marked.parse(markdown);
                     applyCardLayout();
                     highlightCurrentCycle();
+                    addEditButtons();
                 })
-                .catch(error => {
-                    console.error('Error fetching Helix state:', error);
-                    document.getElementById('helix-content').innerHTML = '<p style="color: red;"><strong>Error:</strong> Could not load the state of the Helix.</p>';
+                .catch(error => console.error('Error fetching Helix state:', error));
+        }
+
+        function addEditButtons() {
+            const blockquotes = document.querySelectorAll('blockquote');
+            blockquotes.forEach((blockquote, index) => {
+                const editBtn = document.createElement('button');
+                editBtn.className = 'edit-btn';
+                editBtn.textContent = 'Edit';
+                blockquote.appendChild(editBtn);
+
+                editBtn.addEventListener('click', () => {
+                    const currentText = blockquote.childNodes[0].textContent.trim();
+                    const cycleCard = blockquote.closest('.cycle-card');
+                    const cycleNumber = parseInt(cycleCard.dataset.cycleNumber);
+                    const phase = blockquote.dataset.phase;
+
+                    blockquote.innerHTML = `
+                        <textarea class="edit-textarea">${currentText}</textarea>
+                        <button class="btn save-btn">Save</button>
+                    `;
+                    const saveBtn = blockquote.querySelector('.save-btn');
+                    saveBtn.addEventListener('click', () => {
+                        const newText = blockquote.querySelector('.edit-textarea').value;
+                        fetch(API_URL, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ cycleNumber, phase, answer: newText })
+                        })
+                        .then(response => {
+                            if (!response.ok) throw new Error('Failed to save content');
+                            loadHelixState();
+                        })
+                        .catch(error => console.error('Error saving content:', error));
+                    });
                 });
+            });
+        }
+
+        function applyCardLayout() {
+            const content = document.getElementById('helix-content');
+            if (content.children.length <= 1) return;
+            const newFragment = document.createDocumentFragment();
+            const h1 = content.querySelector('h1');
+            if (h1) newFragment.appendChild(h1);
+            const nodes = Array.from(content.childNodes);
+            let currentGroup = [];
+            let cycleCounter = 0;
+            nodes.forEach(node => {
+                if (node.nodeName === 'H1') return;
+                if (node.nodeName === 'HR') {
+                    if (currentGroup.length > 0) {
+                        const card = createCard(currentGroup);
+                        if (card.classList.contains('cycle-card')) {
+                            cycleCounter++;
+                            card.dataset.cycleNumber = cycleCounter;
+                            const blockquotes = card.querySelectorAll('blockquote');
+                            const phases = ['observe', 'build', 'criticize', 'decide'];
+                            blockquotes.forEach((bq, i) => bq.dataset.phase = phases[i]);
+                        }
+                        newFragment.appendChild(card);
+                    }
+                    currentGroup = [];
+                } else {
+                    if (node.nodeType === 1) currentGroup.push(node);
+                }
+            });
+            if (currentGroup.length > 0) { // Add the last card
+                const card = createCard(currentGroup);
+                if (card.classList.contains('cycle-card')) {
+                    cycleCounter++;
+                    card.dataset.cycleNumber = cycleCounter;
+                    const blockquotes = card.querySelectorAll('blockquote');
+                    const phases = ['observe', 'build', 'criticize', 'decide'];
+                    blockquotes.forEach((bq, i) => bq.dataset.phase = phases[i]);
+                }
+                newFragment.appendChild(card);
+            }
+            content.innerHTML = '';
+            content.appendChild(newFragment);
         }
 
         function createCard(nodes) {
@@ -146,28 +163,6 @@
             return card;
         }
 
-        function applyCardLayout() {
-            const content = document.getElementById('helix-content');
-            if (content.children.length <= 1) return;
-            const newFragment = document.createDocumentFragment();
-            const h1 = content.querySelector('h1');
-            if (h1) newFragment.appendChild(h1);
-            const nodes = Array.from(content.childNodes);
-            let currentGroup = [];
-            nodes.forEach(node => {
-                if(node.nodeName === 'H1') return;
-                if (node.nodeName === 'HR') {
-                    if (currentGroup.length > 0) newFragment.appendChild(createCard(currentGroup));
-                    currentGroup = [];
-                } else {
-                    if(node.nodeType === 1) currentGroup.push(node);
-                }
-            });
-            if (currentGroup.length > 0) newFragment.appendChild(createCard(currentGroup));
-            content.innerHTML = '';
-            content.appendChild(newFragment);
-        }
-
         function highlightCurrentCycle() {
             const cycleCards = document.querySelectorAll('.cycle-card');
             if (cycleCards.length > 0) {
@@ -175,7 +170,6 @@
             }
         }
 
-        // Initial load
         loadHelixState();
     </script>
 </body>
