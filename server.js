@@ -1,11 +1,11 @@
 const express = require('express');
-const fs = require('fs').promises;
 const path = require('path');
+const fs = require('fs').promises;
+const { openDb } = require('./database');
 
 const app = express();
 const port = 3000;
 
-const stateJsonFile = path.join(__dirname, 'state.json');
 const helixStateFile = path.join(__dirname, 'STATE_OF_THE_HELIX.md');
 
 // Simple request logger
@@ -18,7 +18,29 @@ app.use((req, res, next) => {
 app.use(express.static(__dirname));
 app.use(express.json());
 
-function generateMarkdown(state) {
+async function getFullState() {
+    const db = await openDb();
+    const vector = await db.get('SELECT vector FROM vectors ORDER BY id DESC LIMIT 1');
+    const cycles = await db.all('SELECT * FROM cycles ORDER BY number');
+
+    for (const cycle of cycles) {
+        cycle.phases = {};
+        const phases = await db.all('SELECT * FROM phases WHERE cycle_id = ?', cycle.id);
+        for (const phase of phases) {
+            cycle.phases[phase.phase_name] = {
+                question: phase.question,
+                answer: phase.answer
+            };
+        }
+    }
+
+    return {
+        vector: vector.vector,
+        cycles: cycles
+    };
+}
+
+async function writeMarkdown(state) {
     let markdown = `# State of the Helix\n\n## Current Vector\n${state.vector}\n`;
     state.cycles.forEach(cycle => {
         markdown += `
@@ -43,27 +65,15 @@ function generateMarkdown(state) {
   > ${cycle.phases.decide.answer}
 `;
     });
-    return markdown;
-}
-
-async function readState() {
-    const data = await fs.readFile(stateJsonFile, 'utf8');
-    return JSON.parse(data);
-}
-
-async function writeState(state) {
-    await fs.writeFile(stateJsonFile, JSON.stringify(state, null, 2), 'utf8');
-    const markdown = generateMarkdown(state);
     await fs.writeFile(helixStateFile, markdown, 'utf8');
 }
 
 app.get('/api/helix-state', async (req, res) => {
     try {
-        console.log('Reading and generating Helix state markdown...');
-        const state = await readState();
-        const markdown = generateMarkdown(state);
-        res.send(markdown);
-        console.log('Successfully served Helix state.');
+        console.log('Reading and generating Helix state markdown from database...');
+        const state = await getFullState();
+        await writeMarkdown(state); // For backwards compatibility with any system reading the file
+        res.json(state); // Send structured JSON to the frontend
     } catch (err) {
         console.error('Error reading Helix state:', err);
         res.status(500).send('Error reading the Helix state.');
@@ -78,20 +88,28 @@ app.post('/api/helix-state', async (req, res) => {
     }
     try {
         console.log(`Adding new cycle with title: "${title}"`);
-        const state = await readState();
-        const newCycle = {
-            title: title,
-            number: state.cycles.length + 1,
-            phases: {
-                observe: { question: "What has changed, and what is the most important truth we need to learn right now?", answer: "" },
-                build: { question: "What is the fastest, cheapest experiment we can run to answer our most important question?", answer: "" },
-                criticize: { question: "Did the experiment's result validate or invalidate our hypothesis? What did we learn?", answer: "" },
-                decide: { question: "Based on what we just learned, what is our next move?", answer: "" }
-            }
-        };
-        state.cycles.push(newCycle);
-        await writeState(state);
-        console.log(`Successfully added cycle ${newCycle.number}.`);
+        const db = await openDb();
+        const highestNumber = await db.get('SELECT MAX(number) as max FROM cycles');
+        const newCycleNumber = (highestNumber.max || 0) + 1;
+
+        const result = await db.run('INSERT INTO cycles (title, number) VALUES (?, ?)', title, newCycleNumber);
+        const cycleId = result.lastID;
+
+        const phases = [
+            { name: 'observe', question: "What has changed, and what is the most important truth we need to learn right now?" },
+            { name: 'build', question: "What is the fastest, cheapest experiment we can run to answer our most important question?" },
+            { name: 'criticize', question: "Did the experiment's result validate or invalidate our hypothesis? What did we learn?" },
+            { name: 'decide', question: "Based on what we just learned, what is our next move?" }
+        ];
+
+        for (const phase of phases) {
+            await db.run(
+                'INSERT INTO phases (cycle_id, phase_name, question, answer) VALUES (?, ?, ?, ?)',
+                cycleId, phase.name, phase.question, ""
+            );
+        }
+
+        console.log(`Successfully added cycle ${newCycleNumber}.`);
         res.status(200).send('New cycle added successfully.');
     } catch (err) {
         console.error('Error adding new cycle:', err);
@@ -107,18 +125,19 @@ app.put('/api/helix-state', async (req, res) => {
     }
     try {
         console.log(`Updating Cycle ${cycleNumber}, Phase "${phase}"...`);
-        const state = await readState();
-        const cycle = state.cycles.find(c => c.number === cycleNumber);
+        const db = await openDb();
+        const cycle = await db.get('SELECT * FROM cycles WHERE number = ?', cycleNumber);
+
         if (!cycle) {
             console.warn(`Attempted to update a non-existent cycle: ${cycleNumber}`);
             return res.status(404).send('Cycle not found.');
         }
-        if (!cycle.phases[phase]) {
-            console.warn(`Attempted to update a non-existent phase: "${phase}" in cycle ${cycleNumber}`);
-            return res.status(404).send('Phase not found.');
-        }
-        cycle.phases[phase].answer = answer;
-        await writeState(state);
+
+        await db.run(
+            'UPDATE phases SET answer = ? WHERE cycle_id = ? AND phase_name = ?',
+            answer, cycle.id, phase
+        );
+
         console.log(`Successfully updated Cycle ${cycleNumber}.`);
         res.status(200).send('State updated successfully.');
     } catch (err) {
@@ -127,6 +146,11 @@ app.put('/api/helix-state', async (req, res) => {
     }
 });
 
-app.listen(port, () => {
-    console.log(`Helix server listening at http://localhost:${port}`);
-});
+// Start the server only if this file is run directly
+if (require.main === module) {
+    app.listen(port, () => {
+        console.log(`Helix server listening at http://localhost:${port}`);
+    });
+}
+
+module.exports = app;

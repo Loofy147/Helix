@@ -74,14 +74,43 @@
 
         function loadHelixState() {
             fetch(API_URL)
-                .then(response => response.ok ? response.text() : Promise.reject(response.status))
-                .then(markdown => {
+                .then(response => response.ok ? response.json() : Promise.reject(response.status))
+                .then(state => {
+                    const markdown = generateMarkdown(state);
                     document.getElementById('helix-content').innerHTML = marked.parse(markdown);
                     applyCardLayout();
                     highlightCurrentCycle();
                     addEditButtons();
                 })
                 .catch(error => console.error('Error fetching Helix state:', error));
+        }
+
+        function generateMarkdown(state) {
+            let markdown = `# State of the Helix\n\n## Current Vector\n${state.vector}\n`;
+            state.cycles.forEach(cycle => {
+                markdown += `
+---
+
+## Cycle ${cycle.number}: ${cycle.title}
+
+### Phase 1: Observe
+* **${cycle.phases.observe.question}**
+  > ${cycle.phases.observe.answer}
+
+### Phase 2: Build
+* **${cycle.phases.build.question}**
+  > ${cycle.phases.build.answer}
+
+### Phase 3: Criticize
+* **${cycle.phases.criticize.question}**
+  > ${cycle.phases.criticize.answer}
+
+### Phase 4: Decide
+* **${cycle.phases.decide.question}**
+  > ${cycle.phases.decide.answer}
+`;
+            });
+            return markdown;
         }
 
         function addEditButtons() {
